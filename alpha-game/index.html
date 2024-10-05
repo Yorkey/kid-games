@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字母游戏</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background-color: #E0F0E0; /* 添加一个柔和的绿色背景，有利于护眼 */
+        }
+        .letter {
+            position: absolute;
+            font-size: 48px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            color: #333;
+            transition: all 0.3s ease;
+        }
+        #score:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="score">得分: 0</div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        let score = 0;
+        let gameInterval;
+        let isGameRunning = false;
+
+        function createButton(text, left, onClick) {
+            const button = document.createElement('button');
+            button.textContent = text;
+            button.style.position = 'absolute';
+            button.style.top = '20px';
+            button.style.left = left;
+            button.style.padding = '10px 15px';
+            button.style.fontSize = '16px';
+            button.style.fontWeight = 'bold';
+            button.style.backgroundColor = '#4CAF50';
+            button.style.color = 'white';
+            button.style.border = 'none';
+            button.style.borderRadius = '5px';
+            button.style.cursor = 'pointer';
+            button.style.transition = 'all 0.3s ease';
+            button.onmouseover = () => {
+                if (!button.disabled) {
+                    button.style.backgroundColor = '#45a049';
+                    button.style.transform = 'scale(1.05)';
+                }
+            };
+            button.onmouseout = () => {
+                if (!button.disabled) {
+                    button.style.backgroundColor = '#4CAF50';
+                    button.style.transform = 'scale(1)';
+                }
+            };
+            if (onClick) {
+                button.onclick = onClick;
+            }
+            // 添加禁用效果
+            button.disabled = false;
+            Object.defineProperty(button, 'disabled', {
+                get: function() {
+                    return this.hasAttribute('disabled');
+                },
+                set: function(value) {
+                    if (value) {
+                        this.setAttribute('disabled', '');
+                        this.style.backgroundColor = '#cccccc';
+                        this.style.color = '#666666';
+                        this.style.cursor = 'not-allowed';
+                    } else {
+                        this.removeAttribute('disabled');
+                        this.style.backgroundColor = '#4CAF50';
+                        this.style.color = 'white';
+                        this.style.cursor = 'pointer';
+                    }
+                }
+            });
+            return button;
+        }
+        const startButton = createButton('开始', '20px');
+
+        const pauseButton = createButton('暂停', '100px');
+        pauseButton.disabled = true;
+
+        const resetButton = createButton('重置', '180px');
+        resetButton.disabled = true;
+
+        gameContainer.appendChild(startButton);
+        gameContainer.appendChild(pauseButton);
+        gameContainer.appendChild(resetButton);
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+        const maxLetters = 2;
+        let currentLetters = 0;
+
+        function createLetterIfPossible() {
+            if (currentLetters < maxLetters) {
+                createLetter();
+                currentLetters++;
+            }
+        }
+
+        function removeLetter(letter) {
+            gameContainer.removeChild(letter);
+            currentLetters--;
+        }
+
+        function createLetter() {
+            const letter = document.createElement('div');
+            letter.className = 'letter';
+            letter.textContent = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            letter.style.left = `${Math.random() * (gameContainer.clientWidth - 30)}px`;
+            letter.style.top = '-30px';
+            letter.style.color = getRandomColor();
+            gameContainer.appendChild(letter);
+
+            const fallSpeed = 1 + Math.min(0.5, Math.random()) * 1.5;
+
+            function fall() {
+                if (!isGameRunning) return;
+                const currentTop = parseFloat(letter.style.top);
+                if (currentTop < gameContainer.clientHeight) {
+                    letter.style.top = `${currentTop + fallSpeed}px`;
+                    requestAnimationFrame(fall);
+                } else {
+                    removeLetter(letter);
+                }
+            }
+
+            fall();
+        }
+
+        function startGame() {
+            if (!isGameRunning) {
+                isGameRunning = true;
+                gameInterval = setInterval(createLetterIfPossible, 2000);
+                startButton.disabled = true;
+                pauseButton.disabled = false;
+                resetButton.disabled = false;
+            }
+        }
+
+        function pauseGame() {
+            if (isGameRunning) {
+                isGameRunning = false;
+                clearInterval(gameInterval);
+                startButton.disabled = false;
+                resetButton.disabled = false;
+                pauseButton.disabled = true;
+            }
+        }
+
+        function resetGame() {
+            pauseGame();
+            score = 0;
+            scoreElement.textContent = `得分: ${score}`;
+            const letters = document.getElementsByClassName('letter');
+            while (letters.length > 0) {
+                gameContainer.removeChild(letters[0]);
+            }
+            currentLetters = 0;
+            startButton.disabled = false;
+            pauseButton.disabled = true;
+            resetButton.disabled = true;
+        }
+
+        startButton.addEventListener('click', startGame);
+        pauseButton.addEventListener('click', pauseGame);
+        resetButton.addEventListener('click', resetGame);
+
+        document.addEventListener('keydown', (event) => {
+            if (!isGameRunning) return;
+            const pressedKey = event.key.toUpperCase();
+            const letters = document.getElementsByClassName('letter');
+
+            for (let i = letters.length - 1; i >= 0; i--) {
+                if (letters[i].textContent === pressedKey) {
+                    score++;
+                    scoreElement.textContent = `得分: ${score}`;
+                    // 播放得分提示音
+                    const scoreSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3');
+                    scoreSound.play();
+                    if (score % 10 === 0) {
+                        // 播放恭喜音效
+                        const congratsSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3');
+                        congratsSound.play();
+                        const congratsMessage = document.createElement('div');
+                        congratsMessage.className = 'congrats-message';
+                        congratsMessage.textContent = score === 10 ? '恭喜你达到10分！继续加油！' : `太棒了！你已经得到${score}分了！`;
+                        congratsMessage.style.cssText = `
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            background-color: rgba(255, 215, 0, 0.8);
+                            color: #8B0000;
+                            padding: 10px 20px;
+                            border-radius: 10px;
+                            font-size: 18px;
+                            font-weight: bold;
+                            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+                            animation: fadeInOut 2s ease-in-out;
+                        `;
+                        gameContainer.appendChild(congratsMessage);
+                        setTimeout(() => {
+                            gameContainer.removeChild(congratsMessage);
+                        }, 2000);
+                    }
+
+                    letters[i].style.transform = 'scale(2)';
+                    letters[i].style.opacity = '0';
+
+                    const letterRect = letters[i].getBoundingClientRect();
+                    const letterBottom = letterRect.bottom;
+                    const containerHeight = gameContainer.clientHeight;
+                    const remainingDistance = containerHeight - letterBottom;
+                    const removalTime = remainingDistance / fallSpeed;
+
+                    setTimeout(() => {
+                        removeLetter(letters[i]);
+                    }, removalTime);
+
+                    break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
